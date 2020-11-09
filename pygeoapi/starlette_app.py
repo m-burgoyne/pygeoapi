@@ -399,6 +399,38 @@ async def process_jobs(request: Request, process_id=None):
     return response
 
 
+@app.route('/collections/{collection_id}/position')
+@app.route('/collections/{collection_id}/area')
+@app.route('/collections/{collection_id}/cube')
+@app.route('/collections/{collection_id}/trajectory')
+@app.route('/collections/{collection_id}/corridor')
+@app.route('/collections/{collection_id}/locations')
+@app.route('/collections/{collection_id}/instances')
+async def collection_edr(request: Request, collection_id):
+    """
+    OGC EDR API endpoints
+
+    :param collection_id: collection identifier
+
+    :returns: HTTP response
+    """
+
+    if 'collection_id' in request.path_params:
+        collection_id = request.path_params['collection_id']
+
+    query_type = request.path.split('/')[-1]
+
+    headers, status_code, content = api_.get_collection_edr(
+        request.headers, request.query_params, collection_id, query_type)
+
+    response = Response(content=content, status_code=status_code)
+
+    if headers:
+        response.headers.update(headers)
+
+    return response
+
+
 @app.route('/stac')
 async def stac_catalog_root(request: Request):
     """

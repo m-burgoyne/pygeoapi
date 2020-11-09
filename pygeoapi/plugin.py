@@ -47,7 +47,8 @@ PLUGINS = {
         'FileSystem': 'pygeoapi.provider.filesystem.FileSystemProvider',
         'rasterio': 'pygeoapi.provider.rasterio_.RasterioProvider',
         'xarray': 'pygeoapi.provider.xarray_.XarrayProvider',
-        'MVT': 'pygeoapi.provider.mvt.MVTProvider'
+        'MVT': 'pygeoapi.provider.mvt.MVTProvider',
+        'EDR': 'pygeoapi.provider.edr.EDRProvider'
     },
     'formatter': {
         'CSV': 'pygeoapi.formatter.csv_.CSVFormatter'

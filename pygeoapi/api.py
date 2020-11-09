@@ -515,6 +515,9 @@ class API:
                         p = load_plugin('provider', get_provider_by_type(
                             self.config['resources'][dataset]['providers'],
                             'coverage'))
+                        collection['crs'] = [p.crs]
+                        collection['domainset'] = p.get_coverage_domainset()
+                        collection['rangetype'] = p.get_coverage_rangetype()
                     except ProviderConnectionError:
                         exception = {
                            'code': 'NoApplicableCode',
@@ -523,10 +526,8 @@ class API:
                         LOGGER.error(exception)
                         return headers_, 500, to_json(exception,
                                                       self.pretty_print)
-
-                    collection['crs'] = [p.crs]
-                    collection['domainset'] = p.get_coverage_domainset()
-                    collection['rangetype'] = p.get_coverage_rangetype()
+                    except ProviderTypeError:
+                        pass
 
             try:
                 tile = get_provider_by_type(v['providers'], 'tile')
@@ -549,6 +550,33 @@ class API:
                     'href': '{}/collections/{}/tiles?f=html'.format(
                         self.config['server']['url'], k)
                 })
+
+            try:
+                edr = get_provider_by_type(v['providers'], 'edr')
+            except ProviderTypeError:
+                edr = None
+
+            if edr:
+                LOGGER.debug('Creating extended EDR metadata')
+                try:
+                    p = load_plugin('provider', get_provider_by_type(
+                        self.config['resources'][dataset]['providers'],
+                        'edr'))
+                    parameters = p.get_fields()
+                    if parameters:
+                        collection['parameters'] = {}
+                        for f in parameters['field']:
+                            collection['parameters'][f['id']] = f
+                except ProviderConnectionError:
+                    exception = {
+                       'code': 'NoApplicableCode',
+                       'description': 'connection error (check logs)'
+                    }
+                    LOGGER.error(exception)
+                    return headers_, 500, to_json(exception,
+                                                  self.pretty_print)
+                except ProviderTypeError:
+                    pass
 
             if dataset is not None and k == dataset:
                 fcm = collection
@@ -1954,6 +1982,117 @@ tiles/{{{}}}/{{{}}}/{{{}}}/{{{}}}?f=mvt'
             }
             LOGGER.error(exception)
             return headers_, 400, to_json(exception, self.pretty_print)
+
+    def get_collection_edr(self, headers, args, dataset, query_type):
+        """
+        Queries collection EDR
+
+        :param headers: dict of HTTP headers
+        :param args: dict of HTTP request parameters
+        :param dataset: dataset name
+        :param query_type: EDR query type
+
+        :returns: tuple of headers, status code, content
+        """
+
+        headers_ = HEADERS.copy()
+
+        query_args = {}
+        formats = FORMATS
+        formats.extend(f.lower() for f in PLUGINS['formatter'].keys())
+
+        collections = filter_dict_by_key_value(self.config['resources'],
+                                               'type', 'collection')
+
+        if dataset not in collections.keys():
+            exception = {
+                'code': 'InvalidParameterValue',
+                'description': 'Invalid collection'
+            }
+            LOGGER.error(exception)
+            return headers_, 400, to_json(exception, self.pretty_print)
+
+        format_ = check_format(args, headers)
+
+        if format_ is not None and format_ not in formats:
+            exception = {
+                'code': 'InvalidParameterValue',
+                'description': 'Invalid format'
+            }
+            LOGGER.error(exception)
+            return headers_, 400, to_json(exception, self.pretty_print)
+
+        LOGGER.debug('Processing query parameters')
+
+        LOGGER.debug('Processing datetime parameter')
+        datetime_ = args.get('datetime')
+        try:
+            datetime_ = validate_datetime(collections[dataset]['extents'],
+                                          datetime_)
+        except ValueError as err:
+            exception = {
+                'code': 'InvalidParameterValue',
+                'description': str(err)
+            }
+            LOGGER.error(exception)
+            return headers_, 400, to_json(exception, self.pretty_print)
+
+        LOGGER.debug('Processing parametername parameter')
+        parameternames = args.get('parametername', [])
+        if parameternames:
+            parameternames = parameternames.split(',')
+
+        LOGGER.debug('Processing coords parameter')
+        wkt = args.get('coords')
+
+        LOGGER.debug('Processing z parameter')
+        z = args.get('z')
+
+        LOGGER.debug('Loading provider')
+        try:
+            p = load_plugin('provider', get_provider_by_type(
+                collections[dataset]['providers'], 'edr'))
+        except ProviderTypeError:
+            exception = {
+                'code': 'NoApplicableCode',
+                'description': 'invalid provideir type'
+            }
+            LOGGER.error(exception)
+            return headers_, 400, to_json(exception, self.pretty_print)
+        except ProviderConnectionError:
+            exception = {
+                'code': 'NoApplicableCode',
+                'description': 'connection error (check logs)'
+            }
+            LOGGER.error(exception)
+            return headers_, 500, to_json(exception, self.pretty_print)
+        except ProviderQueryError:
+            exception = {
+                'code': 'NoApplicableCode',
+                'description': 'query error (check logs)'
+            }
+            LOGGER.error(exception)
+            return headers_, 500, to_json(exception, self.pretty_print)
+
+        if not all(x in p.get_fields().keys() for x in parameternames):
+            exception = {
+                'code': 'InvalidParameterValue',
+                'description': 'invalid parameter name'
+            }
+            LOGGER.error(exception)
+            return headers_, 400, to_json(exception, self.pretty_print)
+
+        query_args = dict(
+            format_=format_,
+            datetime_=datetime_,
+            select_properties=parameternames,
+            coords=wkt,
+            z=z
+        )
+
+        data = p.query(**query_args)
+
+        return headers_, 200, to_json(data, self.pretty_print)
 
     @pre_process
     @jsonldify

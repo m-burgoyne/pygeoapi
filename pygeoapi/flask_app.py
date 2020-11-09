@@ -403,6 +403,35 @@ def process_jobs(process_id=None):
     return response
 
 
+@BLUEPRINT.route('/collections/<collection_id>/position')
+@BLUEPRINT.route('/collections/<collection_id>/area')
+@BLUEPRINT.route('/collections/<collection_id>/cube')
+@BLUEPRINT.route('/collections/<collection_id>/trajectory')
+@BLUEPRINT.route('/collections/<collection_id>/corridor')
+@BLUEPRINT.route('/collections/<collection_id>/locations')
+@BLUEPRINT.route('/collections/<collection_id>/instances')
+def collection_edr(collection_id):
+    """
+    OGC EDR API endpoints
+
+    :param collection_id: collection identifier
+
+    :returns: HTTP response
+    """
+
+    query_type = request.path.split('/')[-1]
+
+    headers, status_code, content = api_.get_collection_edr(
+        request.headers, request.args, collection_id, query_type)
+
+    response = make_response(content, status_code)
+
+    if headers:
+        response.headers = headers
+
+    return response
+
+
 @BLUEPRINT.route('/stac')
 def stac_catalog_root():
     """
