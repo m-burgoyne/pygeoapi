@@ -567,6 +567,22 @@ class API:
                         collection['parameters'] = {}
                         for f in parameters['field']:
                             collection['parameters'][f['id']] = f
+
+                    for qt in p.get_query_types():
+                        collection['links'].append({
+                            'type': 'text/json',
+                            'rel': 'data',
+                            'title': '{} query for this collection as JSON'.format(qt),  # noqa
+                            'href': '{}/collections/{}/{}?f=json'.format(
+                                self.config['server']['url'], k, qt)
+                        })
+                        collection['links'].append({
+                            'type': 'text/html',
+                            'rel': 'data',
+                            'title': '{} query for this collection as HTML'.format(qt),  # noqa
+                            'href': '{}/collections/{}/{}?f=html'.format(
+                                self.config['server']['url'], k, qt)
+                        })
                 except ProviderConnectionError:
                     exception = {
                        'code': 'NoApplicableCode',
@@ -2073,6 +2089,14 @@ tiles/{{{}}}/{{{}}}/{{{}}}/{{{}}}?f=mvt'
             }
             LOGGER.error(exception)
             return headers_, 500, to_json(exception, self.pretty_print)
+
+        if query_type not in p.get_query_types():
+            exception = {
+                'code': 'InvalidParameterValue',
+                'description': 'Unsupported query type'
+            }
+            LOGGER.error(exception)
+            return headers_, 400, to_json(exception, self.pretty_print)
 
         if not all(x in p.get_fields().keys() for x in parameternames):
             exception = {

@@ -29,6 +29,8 @@
 
 import logging
 
+from shapely.wkt import loads
+
 from pygeoapi.provider.xarray_ import XarrayProvider
 
 LOGGER = logging.getLogger(__name__)
@@ -78,5 +80,9 @@ class EDRProvider(XarrayProvider):
 
         :returns: coverage data as dict of CoverageJSON or native format
         """
+
+        if kwargs.get('wkt') is not None:
+            LOGGER.debug('Transforming WKT into GeoJSON dict')
+            geojson_dict = loads(kwargs['wkt']).__geo_interface__
 
         return {'foo': 'bar'}
