@@ -72,6 +72,8 @@ HEADERS = {
 FORMATS = ['json', 'html', 'jsonld']
 
 CONFORMANCE = [
+    'http://www.opengis.net/spec/ogcapi-common-1/1.0/conf/core',
+    'http://www.opengis.net/spec/ogcapi-common-2/1.0/conf/collections',
     'http://www.opengis.net/spec/ogcapi-features-1/1.0/conf/core',
     'http://www.opengis.net/spec/ogcapi-features-1/1.0/conf/oas30',
     'http://www.opengis.net/spec/ogcapi-features-1/1.0/conf/html',
@@ -81,6 +83,7 @@ CONFORMANCE = [
     'http://www.opengis.net/spec/ogcapi-coverages-1/1.0/conf/html',
     'http://www.opengis.net/spec/ogcapi-tiles-1/1.0/req/core',
     'http://www.opengis.net/spec/ogcapi-tiles-1/1.0/req/collections'
+    'http://www.opengis.net/spec/ogcapi-edr-1/1.0/conf/core'
 ]
 
 OGC_RELTYPES_BASE = 'http://www.opengis.net/def/rel/ogc/1.0'

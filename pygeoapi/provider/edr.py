@@ -84,5 +84,6 @@ class EDRProvider(XarrayProvider):
         if kwargs.get('wkt') is not None:
             LOGGER.debug('Transforming WKT into GeoJSON dict')
             geojson_dict = loads(kwargs['wkt']).__geo_interface__
+            LOGGER.debug('Spatial filter: {}'.format(geojson_dict))
 
         return {'foo': 'bar'}
